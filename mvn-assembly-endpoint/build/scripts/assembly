@@ -1,0 +1,121 @@
+#!/bin/bash
+##################################
+#@author cooze
+#@date 2017/6/3
+#@version 1.0.0
+##################################
+
+#main class
+MAIN=org.cooze.mvn.assembly.jar.Bootstrap
+
+#JAVA_OPTS
+JAVA_OPTS=" -Xms64m -Xmx128m "
+
+#file encode
+ENCODE="utf8"
+
+#timezone
+TIME_ZONE="GMT+08"
+
+BIN_DIR=$(cd "$(dirname "$0")"; pwd)
+#project ROOT PATH
+PROJECT_HOME=${BIN_DIR%/*}
+
+#dependency libs.
+COMMON_LIBS=${PROJECT_HOME}/lib
+
+#boot libs
+BOOT_LIBS=${PROJECT_HOME}/bin
+
+#configure path
+CONF_PATH=${PROJECT_HOME}/conf
+
+#start log path
+LOG_PATH=${PROJECT_HOME}/log
+
+#java runtime envirnment.
+JRE=$JAVA_HOME/jre/lib
+
+[ ! -d ${JAVA_HOME} ]||[ ! -d ${JRE} ] && {
+    echo "Java home is not set."
+    exit 0
+}
+
+function start(){
+
+    [ ! -d ${LOG_PATH} ] &&{
+        mkdir -p ${LOG_PATH}
+    }
+
+    ppid=`ps -ef | grep "java" |grep "org.cooze.mvn.assembly.jar.Bootstrap" | awk '{print $2}'`
+
+    if [ ! -z ${ppid} ]
+    then
+        echo "assembly is running."
+        exit 1
+    fi
+
+    #set to -classpath
+    #JAVA_LIBS=`find $JRE/* -name "*.jar" | xargs | sed 's/ /:/g'`
+
+    nohup $JAVA_HOME/bin/java -server ${JAVA_OPTS} -Dfile.encoding=${ENCODE} -Duser.timezone=${TIME_ZONE} -Djava.ext.dirs=${JRE}/ext:${COMMON_LIBS}:${BOOT_LIBS} -cp ${CONF_PATH} ${MAIN} 2>>${LOG_PATH}/error.log 1>/dev/null &
+
+    echo "assembly starting,please wait for second ... ..."
+
+    sleep 1
+    ppid=`ps -ef | grep "java" | grep "org.cooze.mvn.assembly.jar.Bootstrap" | awk '{print $2}'`
+
+    if [ -z ${ppid} ]
+    then
+        echo "assembly start failure."
+        exit 1
+    fi
+    echo "assembly start success."
+}
+
+function stop(){
+
+    ppid=`ps -ef | grep "java" |grep "org.cooze.mvn.assembly.jar.Bootstrap" | awk '{print $2}'`
+
+    if [ ! -z ${ppid} ]
+    then
+        kill -9 ${ppid}
+        echo "assembly stop."
+    else
+        echo "assembly is not running."
+    fi
+
+}
+
+function status(){
+
+    ppid=`ps -ef | grep "java" |grep "org.cooze.mvn.assembly.jar.Bootstrap" | awk '{print $2}'`
+
+    if [ ! -z ${ppid} ]
+    then
+        echo "assembly is running."
+    else
+        echo "assembly stop."
+    fi
+}
+
+case ${1} in
+
+   start)
+        start
+    ;;
+
+    stop)
+        stop
+    ;;
+
+    status)
+        status
+    ;;
+
+    *)
+         echo -e "usage:\n\t${0} [start|stop|status]\n"
+         exit 1
+    ;;
+
+esac

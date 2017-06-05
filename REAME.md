@@ -1,0 +1,1 @@
+# 该项目主要是springboot通过maven的assambly实现自定义打包的demo工程.
